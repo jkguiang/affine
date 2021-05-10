@@ -102,7 +102,7 @@ int main(int arc, char** argv)
             // Get actor and partner
             unsigned int actor = actors[i];
             unsigned int partner = actors[i+1];
-            // Distribute loan loan
+            // Distribute loans
             actor_wealth[actor] += loan;
             actor_wealth[partner] += loan;
             // Retrieve actor and partner wealth
@@ -114,14 +114,14 @@ int main(int arc, char** argv)
             else { transact = TRANSACT_SIZE*p_wealth; }
             // Determine outcome of biased coin toss
             double prob_minus1 = 0.5*(1 - ZETA*(a_wealth - p_wealth)/(INIT_WEALTH));
-            bool actor_won = xorshift64(xorshift_state) > prob_minus1;
-            // Apply trasnaction to actor and partner wealth
+            bool actor_won = (xorshift64(xorshift_state) > prob_minus1);
+            // Apply transaction to actor and partner wealth
             actor_wealth[actor] += transact*pow(-1, !actor_won);
             actor_wealth[partner] += transact*pow(-1, actor_won);
             // Redistribute wealth
             actor_wealth[actor] += (INIT_WEALTH - actor_wealth[actor])*CHI;
             actor_wealth[partner] += (INIT_WEALTH - actor_wealth[partner])*CHI;
-            // Collect loan
+            // Collect loans
             actor_wealth[actor] -= loan;
             actor_wealth[partner] -= loan;
         }
