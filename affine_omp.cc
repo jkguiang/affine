@@ -1,63 +1,12 @@
 #include <stdio.h>   // printf
 #include <omp.h>     // OpenMP pragmas
 #include <algorithm> // shuffle
-#include <cstring>   // memcpy
 #include <random>    // rand, default_random_engine
 #include <limits>    // numeric_limits
 #include <chrono>    // utc timestamps
 #include <string>    // probably self-evident
 
-struct XORShiftState {
-    uint64_t a;
-    XORShiftState(uint64_t _a) { a = _a; }
-};
-
-double xorshift64(XORShiftState* state) {
-    uint64_t x = state->a;   /* The state must be seeded with a nonzero value. */
-    x ^= x >> 12; // a
-    x ^= x << 25; // b
-    x ^= x >> 27; // c
-    state->a = x;
-    auto u64val = x*0x2545F4914F6CDD1D;
-    double dval = double(u64val)/double(std::numeric_limits<uint64_t>::max());
-    return dval;
-}
-
-template<typename Type>
-Type getAffineEnvVar(std::string const& key) 
-{
-    printf("WARNING: No affine variable of this type");
-    return NULL; 
-}
-
-template <>
-int getAffineEnvVar<int>(std::string const& key)
-{
-    char* val = getenv(key.c_str());
-    if (val == NULL)
-    {
-        printf("WARNING: No affine variable called %s\n", key.c_str());
-        return NULL;
-    }
-    return std::stoi(val, NULL);
-}
-
-template <>
-double getAffineEnvVar<double>(std::string const& key)
-{
-    char* val = getenv(key.c_str());
-    if (val == NULL)
-    {
-        printf("WARNING: No affine variable called %s\n", key.c_str());
-        return NULL;
-    }
-    return std::strtod(val, NULL);
-}
-
-size_t getTime()
-{
-    return std::chrono::system_clock::now().time_since_epoch().count();
-}
+#include "utils.icc"
 
 int main(int arc, char** argv)
 {
