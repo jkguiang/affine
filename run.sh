@@ -17,10 +17,10 @@ for arg in "$@"; do
 done
 
 if [[ "${sim}" == "debug" ]]; then
-    export AFFINE_N_EPOCHS=300
-    export AFFINE_N_ACTORS=100
-    export AFFINE_N_EPOCHS_PER_SAVE=100
-    export AFFINE_N_LORENZ_POINTS=20
+    export AFFINE_N_EPOCHS=50
+    export AFFINE_N_ACTORS=128
+    export AFFINE_N_EPOCHS_PER_SAVE=10
+    export AFFINE_N_LORENZ_POINTS=100
     export AFFINE_INIT_WEALTH=1000.0
     export AFFINE_TRANSACT_SIZE=0.25
     export AFFINE_CHI=0.036
@@ -28,9 +28,9 @@ if [[ "${sim}" == "debug" ]]; then
     export AFFINE_KAPPA=0.058
 elif [[ "${sim}" == "usa" ]]; then
     export AFFINE_N_EPOCHS=200
-    export AFFINE_N_ACTORS=5000
-    export AFFINE_N_EPOCHS_PER_SAVE=10
-    export AFFINE_N_LORENZ_POINTS=100
+    export AFFINE_N_ACTORS=8192
+    export AFFINE_N_EPOCHS_PER_SAVE=128
+    export AFFINE_N_LORENZ_POINTS=64
     export AFFINE_INIT_WEALTH=100.0
     export AFFINE_TRANSACT_SIZE=0.25
     export AFFINE_CHI=0.036
