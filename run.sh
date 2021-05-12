@@ -38,6 +38,7 @@ elif [[ "${sim}" == "usa" ]]; then
     export AFFINE_ZETA=0.05
 else
     echo "No pre-programmed simulation called '${sim}'."
+    exit 1
 fi
 
 # Set up output dir
