@@ -11,15 +11,15 @@
 int main(int arc, char** argv)
 {
     // Retrieve Affine parameters from environment vars
-    const size_t N_ACTORS = getAffineEnvVar<int>("AFFINE_N_ACTORS");
-    const size_t N_EPOCHS = getAffineEnvVar<int>("AFFINE_N_EPOCHS");
-    const int EPOCHS_PER_SAVE = getAffineEnvVar<int>("AFFINE_N_EPOCHS_PER_SAVE");
-    const int N_LORENZ_POINTS = getAffineEnvVar<int>("AFFINE_N_LORENZ_POINTS");
-    const double INIT_WEALTH = getAffineEnvVar<double>("AFFINE_INIT_WEALTH");
-    const double TRANSACT_SIZE = getAffineEnvVar<double>("AFFINE_TRANSACT_SIZE");
-    const double CHI = getAffineEnvVar<double>("AFFINE_CHI");
-    const double ZETA = getAffineEnvVar<double>("AFFINE_ZETA");
-    const double KAPPA = getAffineEnvVar<double>("AFFINE_KAPPA");
+    const size_t N_ACTORS = Utils::getAffineEnvVar<int>("AFFINE_N_ACTORS");
+    const size_t N_EPOCHS = Utils::getAffineEnvVar<int>("AFFINE_N_EPOCHS");
+    const int EPOCHS_PER_SAVE = Utils::getAffineEnvVar<int>("AFFINE_N_EPOCHS_PER_SAVE");
+    const int N_LORENZ_POINTS = Utils::getAffineEnvVar<int>("AFFINE_N_LORENZ_POINTS");
+    const double INIT_WEALTH = Utils::getAffineEnvVar<double>("AFFINE_INIT_WEALTH");
+    const double TRANSACT_SIZE = Utils::getAffineEnvVar<double>("AFFINE_TRANSACT_SIZE");
+    const double CHI = Utils::getAffineEnvVar<double>("AFFINE_CHI");
+    const double ZETA = Utils::getAffineEnvVar<double>("AFFINE_ZETA");
+    const double KAPPA = Utils::getAffineEnvVar<double>("AFFINE_KAPPA");
     // Initialize other Affine-related constants
     const double total_wealth = N_ACTORS*INIT_WEALTH;
     const double loan = (KAPPA/(1. - KAPPA))*INIT_WEALTH;
@@ -52,8 +52,8 @@ int main(int arc, char** argv)
     unsigned int a; // actor
     unsigned int p; // partner
     // Run the simulation
-    unsigned seed = getTime();
-    XORShiftState* xorshift_state;
+    unsigned seed = Utils::getTime();
+    Utils::XORShiftState* xorshift_state;
     for (unsigned int epoch = 0; epoch < N_EPOCHS; epoch++)
     {
         // Shuffle partners
@@ -65,7 +65,7 @@ int main(int arc, char** argv)
         shared(INIT_WEALTH, TRANSACT_SIZE, CHI, ZETA, bank, loan, actors) \
         private(i, a, p, transact, prob_minus1, actor_won, xorshift_state)
         {
-            xorshift_state = new XORShiftState(seed*omp_get_thread_num());
+            xorshift_state = new Utils::XORShiftState(seed*omp_get_thread_num());
             // Run transactions
             #pragma omp for
             for (i = 0; i < N_ACTORS-1; i += 2)
@@ -81,7 +81,7 @@ int main(int arc, char** argv)
                 else { transact = TRANSACT_SIZE*bank[p]; }
                 // Determine outcome of biased coin toss
                 prob_minus1 = 0.5*(1 - ZETA*(bank[a] - bank[p])/(INIT_WEALTH));
-                actor_won = (xorshift64(xorshift_state) > prob_minus1);
+                actor_won = (Utils::xorshift64(xorshift_state) > prob_minus1);
                 // Apply transaction to actor and partner wealth
                 bank[a] += transact*pow(-1, !actor_won);
                 bank[p] += transact*pow(-1, actor_won);
