@@ -66,6 +66,7 @@ int main(int arc, char** argv)
     const size_t N_ACTORS = getAffineEnvVar<int>("AFFINE_N_ACTORS");
     const size_t N_EPOCHS = getAffineEnvVar<int>("AFFINE_N_EPOCHS");
     const int EPOCHS_PER_SAVE = getAffineEnvVar<int>("AFFINE_N_EPOCHS_PER_SAVE");
+    const int N_LORENZ_POINTS = getAffineEnvVar<int>("AFFINE_N_LORENZ_POINTS");
     const double INIT_WEALTH = getAffineEnvVar<double>("AFFINE_INIT_WEALTH");
     const double TRANSACT_SIZE = getAffineEnvVar<double>("AFFINE_TRANSACT_SIZE");
     const double CHI = getAffineEnvVar<double>("AFFINE_CHI");
@@ -83,17 +84,16 @@ int main(int arc, char** argv)
         actors[actor] = actor;
     }
     // Initialize Lorenz curve variables
-    const size_t n_lorenz_points = 1000;
-    double lorenz_fracs[n_lorenz_points];
-    for (unsigned int i = 0; i < n_lorenz_points-5; i++)
+    double lorenz_fracs[N_LORENZ_POINTS];
+    for (unsigned int i = 0; i < N_LORENZ_POINTS-5; i++)
     {
-        lorenz_fracs[i] = (1./N_ACTORS)*i/(n_lorenz_points-5);
+        lorenz_fracs[i] = (1./N_ACTORS)*i/(N_LORENZ_POINTS-5);
     }
-    lorenz_fracs[n_lorenz_points-1] = 0.9;
-    lorenz_fracs[n_lorenz_points-2] = 0.8;
-    lorenz_fracs[n_lorenz_points-3] = 0.5;
-    lorenz_fracs[n_lorenz_points-4] = 0.25;
-    lorenz_fracs[n_lorenz_points-5] = 0.1;
+    lorenz_fracs[N_LORENZ_POINTS-1] = 1.0;
+    lorenz_fracs[N_LORENZ_POINTS-2] = 0.8;
+    lorenz_fracs[N_LORENZ_POINTS-3] = 0.5;
+    lorenz_fracs[N_LORENZ_POINTS-4] = 0.25;
+    lorenz_fracs[N_LORENZ_POINTS-5] = 0.1;
     // Run the simulation
     unsigned seed = getTime();
     XORShiftState* xorshift_state = new XORShiftState(seed);
@@ -135,7 +135,7 @@ int main(int arc, char** argv)
         // Print CSV headers
         if (epoch == 0) { printf("epoch,cumulative_wealth,cumulative_actors\n"); }
         // Compute Lorenz curve
-        for (unsigned int i = 0; i < n_lorenz_points; i++)
+        for (unsigned int i = 0; i < N_LORENZ_POINTS; i++)
         {
             double wealth_frac = lorenz_fracs[i]*total_wealth;
             double cumulative_wealth = 0.; // frac of total wealth held by actors w/ wealth < wealth frac
@@ -153,7 +153,6 @@ int main(int arc, char** argv)
             // Print CSV row
             printf("%d,%f,%f\n", epoch, cumulative_wealth, cumulative_actors);
         }
-        printf("%d,%f,%f\n", epoch, 1.0, 1.0);
     }
     return 0;
 }
