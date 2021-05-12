@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 struct XORShiftState {
     uint64_t a;
     XORShiftState(uint64_t _a) { a = _a; }
@@ -27,7 +29,7 @@ int getAffineEnvVar<int>(std::string const& key)
     char* val = getenv(key.c_str());
     if (val == NULL)
     {
-        throw std::runtime_error("No affine variable called "+key.c_str());
+        throw std::runtime_error("No affine variable called "+key);
         return NULL;
     }
     return std::stoi(val, NULL);
@@ -39,7 +41,7 @@ double getAffineEnvVar<double>(std::string const& key)
     char* val = getenv(key.c_str());
     if (val == NULL)
     {
-        throw std::runtime_error("No affine variable called "+key.c_str());
+        throw std::runtime_error("No affine variable called "+key);
         return NULL;
     }
     return std::strtod(val, NULL);
