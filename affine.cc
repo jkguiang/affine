@@ -1,6 +1,4 @@
 #include <stdio.h>   // printf
-#include <math.h>    // tanh
-#include <omp.h>     // OpenMP pragmas
 #include <algorithm> // shuffle
 #include <cstring>   // memcpy
 #include <random>    // rand, default_random_engine
