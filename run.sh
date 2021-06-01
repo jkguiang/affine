@@ -64,7 +64,7 @@ if [[ "$openmp" == true ]]; then
         output_csv=outputs/${sim}_omp_${n_threads}threads_lorenz_curves.csv
     fi
     # Compile code
-    icpc -qopenmp -std=c++11 -o affine_omp affine_omp.cc
+    icpc -qopenmp -qopt-report=5 -std=c++11 -o affine_omp affine_omp.cc
     # Run code
     ./affine_omp &> ${output_csv}
 else
