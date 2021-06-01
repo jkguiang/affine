@@ -36,7 +36,7 @@ int main(int arc, char** argv)
         actors[actor] = actor;
     }
     double transact;
-    double prob_minus1;
+    double prob_minus_1;
     bool actor_won;
     // Initialize Lorenz curve variables
     double lorenz_fracs[N_LORENZ_POINTS];
@@ -58,11 +58,12 @@ int main(int arc, char** argv)
     unsigned int t; // thread
     // Run the simulation
     int seed = Utils::getTime();
-    Utils::XORShiftState* xorstates_orig[N_THREADS];
-    Utils::XORShiftState* xorstates_next[N_THREADS];
+    const uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
+    uint64_t xorstates_orig[N_THREADS];
+    uint64_t xorstates_next[N_THREADS];
     for (i = 0; i < N_THREADS; i++)
     {
-        xorstates_orig[N_THREADS] = new Utils::XORShiftState(seed*(i+1));
+        xorstates_orig[N_THREADS] = seed*(i+1);
     }
     for (unsigned int epoch = 0; epoch < N_EPOCHS; epoch++)
     {
@@ -73,13 +74,14 @@ int main(int arc, char** argv)
         );
         // Compute the next timestep
         #pragma omp parallel \
-        shared(INIT_WEALTH, TRANSACT_SIZE, CHI, ZETA, bank_orig, loan, actors, xorstates_orig) \
-        private(i, a, p, t, transact, prob_minus1, actor_won)
+        default(none) \
+        shared(INIT_WEALTH, TRANSACT_SIZE, CHI, ZETA, loan, actors, bank_orig, bank_next, max_uint64, xorstates_orig, xorstates_next) \
+        private(i, a, p, t, transact, prob_minus_1, actor_won)
         {
             t = omp_get_thread_num();
             xorstates_next[t] = xorstates_orig[t];
             // Run transactions
-            #pragma omp for lastprivate(bank_next, xorstates_next)
+            #pragma omp simd lastprivate(bank_next, xorstates_next)
             for (i = 0; i < N_ACTORS-1; i += 2)
             {
                 // Get actor and partner
@@ -89,17 +91,22 @@ int main(int arc, char** argv)
                 bank_next[a] = bank_orig[a] + loan;
                 bank_next[p] = bank_orig[p] + loan;
                 // Determine transaction value
-                if (bank_next[a] < bank_next[p]) 
+                if (bank_next[a] < bank_next[p])
                 {
-                    transact = TRANSACT_SIZE*bank_next[a]; 
+                    transact = TRANSACT_SIZE*bank_next[a];
                 }
-                else 
-                { 
-                    transact = TRANSACT_SIZE*bank_next[p]; 
+                else
+                {
+                    transact = TRANSACT_SIZE*bank_next[p];
                 }
                 // Determine outcome of biased coin toss
-                prob_minus1 = 0.5*(1-ZETA*(bank_next[a]-bank_next[p])/(INIT_WEALTH));
-                actor_won = (Utils::xorshift64(xorstates_next[t]) > prob_minus1);
+                prob_minus_1 = 0.5*(1-ZETA*(bank_next[a]-bank_next[p])/(INIT_WEALTH));
+                // Toss a coin (using XOR-shift RNG)
+                xorstates_next[t] ^= xorstates_next[t] >> 12; // a
+                xorstates_next[t] ^= xorstates_next[t] << 25; // b
+                xorstates_next[t] ^= xorstates_next[t] >> 27; // c
+                auto u64val = xorstates_next[t]*0x2545F4914F6CDD1D;
+                actor_won = (double(u64val)/double(max_uint64) > prob_minus_1);
                 // Apply transaction to actor and partner wealth
                 bank_next[a] += transact*pow(-1, !actor_won);
                 bank_next[p] += transact*pow(-1, actor_won);
@@ -113,20 +120,22 @@ int main(int arc, char** argv)
         }
         // Set original arrays equal to the next timestep computed above
         std::memcpy(bank_orig, bank_next, sizeof(double)*N_ACTORS);
-        std::memcpy(xorstates_orig, xorstates_next, sizeof(xorstates_orig));
+        std::memcpy(xorstates_orig, xorstates_next, sizeof(uint64_t)*N_THREADS);
         // Only compute Lorenz curve at checkpoints or on final epoch
         if (epoch % EPOCHS_PER_SAVE != 0 && epoch != N_EPOCHS-1) { continue; }
         // Print CSV headers
         if (epoch == 0) { printf("epoch,cumulative_wealth,cumulative_actors\n"); }
         // Compute Lorenz curve
         #pragma omp parallel \
-        shared(N_ACTORS, total_wealth, bank_next, lorenz_fracs) \
-        private(i, a) \
-        firstprivate(cumulative_wealth, cumulative_actors)
+        default(none) \
+        shared(N_ACTORS, N_LORENZ_POINTS, total_wealth, bank_next, lorenz_fracs, epoch) \
+        private(i, a, cumulative_wealth, cumulative_actors)
         {
             #pragma omp for
             for (i = 0; i < N_LORENZ_POINTS; i++)
             {
+                cumulative_wealth = 0.;
+                cumulative_actors = 0.;
                 for (a = 0; a < N_ACTORS; a++)
                 {
                     if (bank_next[a] < lorenz_fracs[i]*total_wealth) 
