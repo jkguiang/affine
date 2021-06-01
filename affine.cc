@@ -65,8 +65,8 @@ int main(int arc, char** argv)
             if (bank[a] < bank[p]) { transact = TRANSACT_SIZE*bank[a]; }
             else { transact = TRANSACT_SIZE*bank[p]; }
             // Determine outcome of biased coin toss
-            double prob_minus1 = 0.5*(1 - ZETA*(bank[a] - bank[p])/(INIT_WEALTH));
-            bool actor_won = (Utils::xorshift64(xorshift_state) > prob_minus1);
+            double prob_minus_1 = 0.5*(1 - ZETA*(bank[a] - bank[p])/INIT_WEALTH);
+            bool actor_won = (Utils::xorshift64(xorshift_state) > prob_minus_1);
             // Apply transaction to actor and partner wealth
             bank[a] += transact*pow(-1, !actor_won);
             bank[p] += transact*pow(-1, actor_won);
