@@ -1,6 +1,7 @@
 # Default values
 openmp=false
 n_threads=1
+n_reps=1
 sim="debug"
 args=""
 
@@ -12,14 +13,15 @@ for arg in "$@"; do
         --openmp) openmp=true;;
         --n_threads) n_threads=${val};;
         --sim) sim=${val};;     
+        --n_reps) n_reps=${val};;
         *) args+="$arg ";;
     esac
 done
 
 if [[ "${sim}" == "debug" ]]; then
-    export AFFINE_N_EPOCHS=50
+    export AFFINE_N_EPOCHS=48
     export AFFINE_N_ACTORS=128
-    export AFFINE_N_EPOCHS_PER_SAVE=10
+    export AFFINE_N_EPOCHS_PER_SAVE=24
     export AFFINE_N_LORENZ_POINTS=100
     export AFFINE_INIT_WEALTH=1000.0
     export AFFINE_TRANSACT_SIZE=0.25
@@ -27,7 +29,7 @@ if [[ "${sim}" == "debug" ]]; then
     export AFFINE_ZETA=0.05
     export AFFINE_KAPPA=0.058
 elif [[ "${sim}" == "usa" ]]; then
-    export AFFINE_N_EPOCHS=200
+    export AFFINE_N_EPOCHS=256
     export AFFINE_N_ACTORS=8192
     export AFFINE_N_EPOCHS_PER_SAVE=128
     export AFFINE_N_LORENZ_POINTS=64
@@ -49,34 +51,46 @@ module purge
 module load slurm
 module load cpu
 module load intel
-
-output_csv=""
+output_name=""
+executable=""
 if [[ "$openmp" == true ]]; then
+    executable=affine_omp_simple
+    echo "Compiling OpenMP code..."
     # Load OpenMP compiler
     module load intel-mpi
     # Set number of threads
     export OMP_NUM_THREADS=${n_threads}
     if [[ "${n_threads}" == "1" ]]; then
-        echo "Running OpenMP code with ${n_threads} thread..."
-        output_csv=outputs/${sim}_omp_${n_threads}thread_lorenz_curves.csv
+        echo "Using ${n_threads} thread..."
+        output_name=${sim}_omp_${n_threads}thread
     else
-        echo "Running OpenMP code with ${n_threads} threads..."
-        output_csv=outputs/${sim}_omp_${n_threads}threads_lorenz_curves.csv
+        echo "Using ${n_threads} threads..."
+        output_name=${sim}_omp_${n_threads}threads
     fi
     # Compile code
-    icpc -qopenmp -qopt-report=5 -std=c++11 -o affine_omp affine_omp.cc
-    # Run code
-    ./affine_omp &> ${output_csv}
+    icpc -qopenmp -qopt-report=5 -std=c++11 -o ${executable} ${executable}.cc
+    # Move optimization report to outputs directory
+    mv ${executable}.optrpt outputs/${output_name}.optrpt
 else
+    executable=affine
     echo "Running serial code..."
-    output_csv=outputs/${sim}_lorenz_curves.csv
+    output_name=${sim}_serial
     # Compile code
-    icpc -std=c++11 -o affine affine.cc
-    # Run code
-    ./affine &> ${output_csv}
+    icpc -std=c++11 -o ${executable} ${executable}.cc
 fi
 
-echo "Compressing output..."
-# Compress output
-gzip -f ${output_csv}
-echo "Done. Saved to ${output_csv}.gz"
+runtime=0
+for rep in $(seq 1 ${n_reps}); do 
+    echo "Running..."
+    # Run code
+    start_utc_ns=$(date +%s%N)
+    ./${executable} &> outputs/${output_name}_lorenz_curves_rep${rep}.csv
+    end_utc_ns=$(date +%s%N)
+    runtime=$((${end_utc_ns} - ${start_utc_ns}))
+    echo "Finished. (${runtime} ns)"
+    # Write runtime to file
+    echo "${runtime}" >> outputs/${output_name}_runtimes.txt
+done
+# Wrap up
+echo "Compressing outputs..."
+gzip -f outputs/*.csv
